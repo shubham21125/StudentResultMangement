@@ -1,0 +1,59 @@
+{% extends 'admin_base.html' %} {% load static %} {% block content %}
+
+<div class="container mt-4">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h4 class="mb-4 text-success">
+        <i class="fas fa-user-plus me-2"></i>Add Notice
+      </h4>
+
+      {% if messages %} {% for m in messages %}
+      <div
+        class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{ m.tags }}{% endif %} alert-dismissible fade show"
+        role="alert"
+      >
+        {{ m }}
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="alert"
+        ></button>
+      </div>
+      {% endfor %} {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label for="title" class="form-label">Notice Title</label>
+          <input
+            type="text"
+            class="form-control"
+            id="title"
+            name="title"
+            placeholder="Enter notice title"
+            required
+          />
+        </div>
+
+        <div class="mb-3">
+          <label for="details" class="form-label">Notice Details</label>
+          <textarea
+            class="form-control"
+            id="details"
+            name="details"
+            rows="5"
+            placeholder="Enter notice details"
+            required
+          ></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-success">
+          <i class="fas fa-check-circle me-1"></i> Submit
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

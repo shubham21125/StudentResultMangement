@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+    
+    <!-- Result Header -->
+    <div class="card mb-4 border-0 shadow">
+        <div class="card-body text-center py-4 
+            {% if is_failed %}bg-danger{% else %}bg-success{% endif %} text-white rounded">
+            
+            {% if is_failed %}
+                <i class="fas fa-times-circle fa-4x mb-3"></i>
+                <h2 class="fw-bold">RESULT: FAIL</h2>
+                <p class="lead mb-0">Better luck next time! Keep working hard.</p>
+            {% else %}
+                <i class="fas fa-check-circle fa-4x mb-3"></i>
+                <h2 class="fw-bold">RESULT: PASS</h2>
+                <p class="lead mb-0">Congratulations! Keep up the great work!</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Student Info -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-user-graduate me-2"></i>Student Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th width="40%">Student Name:</th>
+                            <td>{{ student.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Roll No:</th>
+                            <td>{{ student.roll_id }}</td>
+                        </tr>
+                        <tr>
+                            <th>Class:</th>
+                            <td>{{ student.student_class.class_name }} - Section {{ student.student_class.section }}</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <th width="40%">Total Marks:</th>
+                            <td>{{ total_marks }} / {{ max_total }}</td>
+                        </tr>
+                        <tr>
+                            <th>Percentage:</th>
+                            <td>{{ percentage }}%</td>
+                        </tr>
+                        <tr>
+                            <th>Grade:</th>
+                            <td>
+                                <span class="badge fs-6 
+                                    {% if grade == 'A+' %}bg-success
+                                    {% elif grade == 'A' %}bg-success
+                                    {% elif grade == 'B+' %}bg-primary
+                                    {% elif grade == 'B' %}bg-primary
+                                    {% elif grade == 'C+' %}bg-warning
+                                    {% elif grade == 'C' %}bg-warning
+                                    {% else %}bg-danger
+                                    {% endif %}">
+                                    {{ grade }}
+                                </span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Failed Alert -->
+    {% if is_failed %}
+    <div class="alert alert-danger mb-4">
+        <h5><i class="fas fa-exclamation-triangle me-2"></i>Failed Subjects</h5>
+        <p class="mb-0">
+            You have failed in 
+            <strong>{{ failed_subjects|length }}</strong> subject(s). 
+            Minimum passing marks is <strong>35</strong> per subject.
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Results Table -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Subject-wise Result</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>S.No.</th>
+                            <th>Subject</th>
+                            <th>Marks Obtained</th>
+                            <th>Max Marks</th>
+                            <th>Percentage</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in results %}
+                        <tr class="{% if result.marks < 35 %}table-danger{% endif %}">
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ result.subject.subject_name }}</td>
+                            <td>
+                                <strong>{{ result.marks }}</strong>
+                            </td>
+                            <td>100</td>
+                            <td>{{ result.marks }}%</td>
+                            <td>
+                                {% if result.marks < 35 %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times me-1"></i>FAIL
+                                    </span>
+                                {% elif result.marks >= 75 %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-star me-1"></i>Distinction
+                                    </span>
+                                {% elif result.marks >= 60 %}
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-check me-1"></i>First Class
+                                    </span>
+                                {% elif result.marks >= 50 %}
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-check me-1"></i>Second Class
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-check me-1"></i>PASS
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-secondary">
+                        <tr>
+                            <th colspan="2">Total</th>
+                            <th>{{ total_marks }}</th>
+                            <th>{{ max_total }}</th>
+                            <th>{{ percentage }}%</th>
+                            <th>
+                                {% if is_failed %}
+                                    <span class="badge bg-danger">FAIL</span>
+                                {% else %}
+                                    <span class="badge bg-success">PASS</span>
+                                {% endif %}
+                            </th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Summary -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <h3 class="text-primary">{{ subject_count }}</h3>
+                    <p class="mb-0">Total Subjects</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <h3 class="text-success">{{ passed_subjects|length }}</h3>
+                    <p class="mb-0">Subjects Passed</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <h3 class="text-danger">{{ failed_subjects|length }}</h3>
+                    <p class="mb-0">Subjects Failed</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <h3 class="{% if is_failed %}text-danger{% else %}text-success{% endif %}">
+                        {{ grade }}
+                    </h3>
+                    <p class="mb-0">Overall Grade</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grade Legend -->
+    <div class="card mt-4 shadow-sm">
+        <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Grade Legend</h6>
+        </div>
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col">
+                    <span class="badge bg-success p-2">A+ (90-100%)</span>
+                </div>
+                <div class="col">
+                    <span class="badge bg-success p-2">A (80-89%)</span>
+                </div>
+                <div class="col">
+                    <span class="badge bg-primary p-2">B+ (70-79%)</span>
+                </div>
+                <div class="col">
+                    <span class="badge bg-primary p-2">B (60-69%)</span>
+                </div>
+                <div class="col">
+                    <span class="badge bg-warning p-2">C+ (50-59%)</span>
+                </div>
+                <div class="col">
+                    <span class="badge bg-warning p-2">C (35-49%)</span>
+                </div>
+                <div class="col">
+                    <span class="badge bg-danger p-2">F (Below 35%)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="text-center mt-4">
+        <a href="{% url 'search_result' %}" class="btn btn-primary btn-lg">
+            <i class="fas fa-search me-2"></i>Search Another Result
+        </a>
+        <a href="{% url 'home' %}" class="btn btn-secondary btn-lg ms-2">
+            <i class="fas fa-home me-2"></i>Go to Home
+        </a>
+    </div>
+
+</div>
+{% endblock %}

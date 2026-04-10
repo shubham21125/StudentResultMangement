@@ -1,0 +1,188 @@
+{% extends 'admin_base.html' %} 
+{% load static %}
+{% block content %}
+
+<div class="container">
+    <h2 class="mb-4"><i class="fas fa-user-plus"></i> Add Student</h2>
+    {% if messages %}
+        {% for m in messages %}
+            <div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{m.tags}}{% endif %} alert-dismissible fade show" role="alert">
+                {{m}}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <form method="post" id="studentForm" novalidate>
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="fullname" class="form-label">Full Name</label>
+            <input type="text" class="form-control" id="fullname" name="fullname" 
+                   placeholder="Enter Full Name" required 
+                   pattern="[A-Za-z\s]{2,50}"
+                   title="Name should only contain letters and spaces (2-50 characters)">
+            <div class="invalid-feedback">
+                Please enter a valid name (letters and spaces only, 2-50 characters).
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="rollid" class="form-label">Roll No</label>
+            <input type="text" class="form-control" id="rollid" name="rollid" 
+                   placeholder="Roll Number" maxlength="20" required
+                   pattern="[A-Za-z0-9\-]{1,20}"
+                   title="Roll number can contain letters, numbers, and hyphens (1-20 characters)">
+            <div class="invalid-feedback">
+                Please enter a valid roll number (1-20 alphanumeric characters).
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="emailid" class="form-label">Email ID</label>
+            <input type="email" class="form-control" id="emailid" name="emailid" 
+                   placeholder="student@example.com" required>
+            <div class="invalid-feedback">
+                Please enter a valid email address.
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Gender</label><br/>
+            <div class="form-check form-check-inline">
+                <input type="radio" class="form-check-input" id="male" name="gender" value="male" required>
+                <label class="form-check-label" for="male">Male</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input type="radio" class="form-check-input" id="female" name="gender" value="female" required>
+                <label class="form-check-label" for="female">Female</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input type="radio" class="form-check-input" id="other" name="gender" value="other" required>
+                <label class="form-check-label" for="other">Other</label>
+            </div>
+            <div class="invalid-feedback d-block" id="gender-error" style="display: none !important;">
+                Please select a gender.
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="class" class="form-label">Select Class</label>
+            <select class="form-select" id="class" name="class" required>
+                <option value="">--Select Class--</option>
+                {% for i in classes %}
+                    <option value="{{ i.id }}">{{ i.class_name }} - Section {{ i.section }}</option>
+                {% endfor %}
+            </select>
+            <div class="invalid-feedback">
+                Please select a class.
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="dob" class="form-label">Date of Birth</label>
+            <input type="date" class="form-control" id="dob" name="dob" required>
+            <div class="invalid-feedback">
+                Please enter a valid date of birth.
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-success">
+            <i class="fas fa-check-circle me-1"></i>Submit
+        </button>
+        <a href="{% url 'manage_students' %}" class="btn btn-secondary">
+            <i class="fas fa-times me-1"></i>Cancel
+        </a>
+    </form>
+</div>
+
+<script>
+    (function() {
+        'use strict';
+
+        const form = document.getElementById('studentForm');
+        const dobInput = document.getElementById('dob');
+        const fullnameInput = document.getElementById('fullname');
+        const emailInput = document.getElementById('emailid');
+        const rollidInput = document.getElementById('rollid');
+
+        // Set max date for DOB (must be at least 3 years old)
+        const today = new Date();
+        const maxDate = new Date(today.getFullYear() - 3, today.getMonth(), today.getDate());
+        const minDate = new Date(today.getFullYear() - 25, today.getMonth(), today.getDate());
+        
+        dobInput.max = maxDate.toISOString().split('T')[0];
+        dobInput.min = minDate.toISOString().split('T')[0];
+
+        // Capitalize first letter of each word in name
+        fullnameInput.addEventListener('blur', function() {
+            this.value = this.value.replace(/\b\w/g, char => char.toUpperCase());
+        });
+
+        // Convert email to lowercase
+        emailInput.addEventListener('blur', function() {
+            this.value = this.value.toLowerCase();
+        });
+
+        // Convert roll ID to uppercase
+        rollidInput.addEventListener('blur', function() {
+            this.value = this.value.toUpperCase();
+        });
+
+        // Form validation
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                // Additional DOB validation
+                const dob = new Date(dobInput.value);
+                const age = (today - dob) / (1000 * 60 * 60 * 24 * 365.25);
+                
+                if (age < 3 || age > 25) {
+                    event.preventDefault();
+                    dobInput.setCustomValidity('Student must be between 3 and 25 years old');
+                    alert('Student must be between 3 and 25 years old');
+                    return false;
+                } else {
+                    dobInput.setCustomValidity('');
+                }
+
+                // Roll ID validation - at least 1 character
+                if (rollidInput.value.trim().length < 1) {
+                    event.preventDefault();
+                    rollidInput.setCustomValidity('Roll number must be at least 1 character');
+                    alert('Roll number must be at least 1 character');
+                    return false;
+                } else {
+                    rollidInput.setCustomValidity('');
+                }
+            }
+
+            form.classList.add('was-validated');
+        }, false);
+
+        // Reset custom validity on input
+        dobInput.addEventListener('input', function() {
+            this.setCustomValidity('');
+        });
+
+        rollidInput.addEventListener('input', function() {
+            this.setCustomValidity('');
+        });
+
+    })();
+</script>
+
+<style>
+    .was-validated .form-control:invalid,
+    .was-validated .form-select:invalid {
+        border-color: #dc3545;
+    }
+
+    .was-validated .form-control:valid,
+    .was-validated .form-select:valid {
+        border-color: #198754;
+    }
+</style>
+
+{% endblock %}

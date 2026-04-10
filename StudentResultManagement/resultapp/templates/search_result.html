@@ -1,0 +1,57 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+      <div class="card shadow">
+        <div class="card-header text-center bg-dark text-white">
+          <h4><i class="fas fa-graduation-cap"></i>Search Result</h4>
+        </div>
+        <div class="card-body p-4">
+          {% if messages %} {% for m in messages %}
+          <div
+            class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{ m.tags }}{% endif %} alert-dismissible fade show"
+            role="alert"
+          >
+            {{ m }}
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="alert"
+            ></button>
+          </div>
+          {% endfor %} {% endif %}
+          <form method="POST" action="{% url 'check_result' %}">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="rollid" class="form-label"> Enter Roll No </label>
+              <input
+                type="text"
+                class="form-control"
+                id="rollid"
+                name="rollid"
+                placeholder="Enter your Roll No"
+                required
+              />
+            </div>
+            <div class="mb-3">
+              <label for="class" class="form-label">Select Class</label>
+              <select class="form-select" id="class" name="class" required>
+                <option value="">--Select Class--</option>
+                {% for i in classes %}
+                <option value="{{ i.id }}">
+                  {{ i.class_name }} - Section {{ i.section }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <button type="submit" class="btn btn-success w-100">
+              <i class="fas fa-check me-1"></i> Search
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends 'admin_base.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container">
+    <h2 class="mb-4"><i class="fas fa-calendar-check"></i> Mark Attendance</h2>
+    
+    {% if messages %}
+        {% for m in messages %}
+            <div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{m.tags}}{% endif %} alert-dismissible fade show" role="alert">
+                {{m}}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <form method="post" id="attendanceForm">
+        {% csrf_token %}
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <label for="class" class="form-label">Select Class</label>
+                <select class="form-select" id="class" name="class" required>
+                    <option value="">--Select Class--</option>
+                    {% for cls in classes %}
+                        <option value="{{ cls.id }}">{{ cls.class_name }} - Section {{ cls.section }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-6">
+                <label for="date" class="form-label">Date</label>
+                <input type="date" class="form-control" id="date" name="date" required>
+            </div>
+        </div>
+
+        <div id="studentsList"></div>
+
+        <button type="submit" class="btn btn-success" id="submitBtn" style="display:none;">
+            <i class="fas fa-check-circle me-1"></i>Submit Attendance
+        </button>
+    </form>
+</div>
+
+<script>
+    document.getElementById('class').addEventListener('change', function() {
+        const classId = this.value;
+        
+        if (!classId) {
+            document.getElementById('studentsList').innerHTML = '';
+            document.getElementById('submitBtn').style.display = 'none';
+            return;
+        }
+
+        fetch(`/get_students_subjects/?class_id=${classId}`)
+        .then(res => res.json())
+        .then(data => {
+            const studentsList = document.getElementById('studentsList');
+            
+            if (data.students.length === 0) {
+                studentsList.innerHTML = '<div class="alert alert-warning">No students found in this class.</div>';
+                document.getElementById('submitBtn').style.display = 'none';
+                return;
+            }
+
+            let html = '<h5 class="mb-3">Mark Attendance for Students</h5>';
+            html += '<div class="table-responsive"><table class="table table-bordered">';
+            html += '<thead class="table-dark"><tr><th>S.No.</th><th>Student Name</th><th>Roll No</th><th>Status</th><th>Remarks</th></tr></thead><tbody>';
+
+            data.students.forEach((student, index) => {
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${student.name}</td>
+                        <td>${student.roll_id}</td>
+                        <td>
+                            <select name="status_${student.id}" class="form-select form-select-sm" required>
+                                <option value="present">Present</option>
+                                <option value="absent">Absent</option>
+                                <option value="late">Late</option>
+                                <option value="excused">Excused</option>
+                            </select>
+                        </td>
+                        <td>
+                            <input type="text" name="remarks_${student.id}" class="form-control form-control-sm" placeholder="Optional remarks">
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table></div>';
+            studentsList.innerHTML = html;
+            document.getElementById('submitBtn').style.display = 'block';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to load students.');
+        });
+    });
+
+    // Set today's date as default
+    document.getElementById('date').valueAsDate = new Date();
+</script>
+
+{% endblock %}

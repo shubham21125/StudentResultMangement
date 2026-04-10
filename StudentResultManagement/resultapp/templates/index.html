@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<header class="py-5 text-white"
+  style="background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); min-height: 60vh; display: flex; align-items: center;">
+  <div class="container text-center">
+    <h1 class="display-3 fw-bold mb-4">Student Result Management System</h1>
+    <p class="lead mb-5" style="opacity: 0.9;">View your academic performance efficiently and transparently.</p>
+    <a href="{% url 'search_result' %}" class="btn btn-warning btn-lg px-5 py-3 fw-bold rounded-pill shadow-lg">
+      <i class="fas fa-search me-2"></i>Check Result
+    </a>
+  </div>
+</header>
+
+<section class="py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card shadow border-0">
+          <div class="card-header bg-white py-3 border-bottom-0">
+            <h4 class="m-0 font-weight-bold text-primary"><i class="fas fa-bullhorn me-2"></i>Notice Board</h4>
+          </div>
+          <div class="card-body bg-light">
+            {% if notices %}
+            <div class="list-group list-group-flush">
+              <marquee direction="up" scrollamount="2" onmouseover="this.stop()" onmouseout="this.start()"
+                style="height: 300px;">
+                {% for notice in notices %}
+                <a href="{% url 'notice_detail' notice.id %}"
+                  class="list-group-item list-group-item-action bg-transparent border-0 mb-2 p-3 shadow-sm rounded bg-white">
+                  <div class="d-flex w-100 justify-content-between align-items-center">
+                    <h5 class="mb-1 text-primary">{{ notice.title }}</h5>
+                    <small class="text-muted"><i class="far fa-clock me-1"></i>{{ notice.posting_date|date:"M d, Y"
+                      }}</small>
+                  </div>
+                  <p class="mb-1 text-secondary text-truncate">{{ notice.detail|truncatewords:20 }}</p>
+                </a>
+                {% endfor %}
+              </marquee>
+            </div>
+            {% else %}
+            <p class="text-center text-muted my-5">No notices available at the moment.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
