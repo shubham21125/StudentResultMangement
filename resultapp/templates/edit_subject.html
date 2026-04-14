@@ -1,0 +1,39 @@
+{% extends 'admin_base.html' %} 
+{% load static %}
+{% block content %}
+
+<div class="container">
+    <h2 class="mb-4"><i class="fas fa-edit"></i> Edit Subject</h2>
+    {% if messages %}
+        {% for m in messages %}
+            <div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{m.tags}}{% endif %} alert-dismissible fade show" role="alert">
+                {{m}}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="subjectname" class="form-label">Subject Name</label>
+            <input type="text" class="form-control" id="subjectname" name="subjectname" placeholder="Enter Subject Name" value="{{ subject_obj.subject_name }}" required>
+            <small class="text-muted">e.g., Java,Python,Data Structure</small>
+        </div>
+
+        <div class="mb-3">
+            <label for="subjectcode" class="form-label">Subject Code</label>
+            <input type="text" class="form-control" id="subjectcode" name="subjectcode" placeholder="Enter Subject Code" value="{{ subject_obj.subject_code }}" required>
+            <small class="text-muted">e.g., USCS204,USCS201</small>
+        </div>
+
+        <button type="submit" class="btn btn-success">
+            <i class="fas fa-check-circle me-1"></i>Submit
+        </button>
+        <a href="{% url 'manage_subject' %}" class="btn btn-secondary">
+            <i class="fas fa-times me-1"></i>Cancel
+        </a>
+    </form>
+</div>
+
+{% endblock %}

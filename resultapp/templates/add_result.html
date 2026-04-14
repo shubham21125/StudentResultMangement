@@ -1,0 +1,145 @@
+{% extends 'admin_base.html' %} 
+{% load static %}
+{% block content %}
+
+<div class="container">
+    <h2 class="mb-4"><i class="fas fa-plus"></i> Declare Result</h2>
+    {% if messages %}
+        {% for m in messages %}
+            <div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{m.tags}}{% endif %} alert-dismissible fade show" role="alert">
+                {{m}}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <form method="post" id="resultForm">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="class_id" class="form-label">Select Class</label>
+            <select class="form-select" id="class_id" name="class" required>
+                <option value="">--Select Class--</option>
+                {% for i in classes %}
+                    <option value="{{ i.id }}">{{ i.class_name }} - Section {{ i.section }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="student_id" class="form-label">Select Student</label>
+            <select class="form-select" id="student_id" name="studentid" required disabled>
+                <option value="">--Select Student--</option>
+            </select>
+            <small class="text-muted" id="student_count"></small>
+        </div>
+
+        <div id="subject_fields"></div>
+
+        <div id="error_message" class="alert alert-danger" style="display: none;"></div>
+
+        <button type="submit" class="btn btn-success" id="submitBtn" disabled>
+            <i class="fas fa-check-circle me-1"></i>Submit
+        </button>
+    </form>
+</div>
+
+<script>
+    const classSelect = document.getElementById('class_id');
+    const studentSelect = document.getElementById('student_id');
+    const subjectFields = document.getElementById('subject_fields');
+    const submitBtn = document.getElementById('submitBtn');
+    const studentCount = document.getElementById('student_count');
+    const errorMessage = document.getElementById('error_message');
+
+    classSelect.addEventListener('change', function() {
+        const classId = this.value;
+
+        // Reset dependent fields
+        studentSelect.innerHTML = '<option value="">--Select Student--</option>';
+        studentSelect.disabled = true;
+        subjectFields.innerHTML = '';
+        submitBtn.disabled = true;
+        studentCount.textContent = '';
+        errorMessage.style.display = 'none';
+
+        if(!classId) return;
+
+        // Show loading state
+        studentSelect.innerHTML = '<option value="">Loading...</option>';
+        studentSelect.disabled = true;
+
+        console.log('Fetching data for class ID:', classId); // Debug log
+
+        fetch(`/get_students_subjects/?class_id=${classId}`)
+        .then(res => {
+            console.log('Response status:', res.status); // Debug log
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+            return res.json();
+        })
+        .then(data => {
+            console.log('Received data:', data); // Debug log
+
+            // Check if data is valid
+            if (!data.students || !data.subjects) {
+                throw new Error('Invalid data structure received');
+            }
+
+            // Populate students
+            studentSelect.innerHTML = '<option value="">--Select Student--</option>';
+            
+            if (data.students.length === 0) {
+                studentSelect.innerHTML = '<option value="">No students found in this class</option>';
+                studentCount.textContent = 'No students enrolled in this class';
+                studentCount.className = 'text-warning';
+                return;
+            }
+
+            data.students.forEach(stu => {
+                const opt = document.createElement('option');
+                opt.value = stu.id;
+                opt.text = `${stu.name} (Roll ID: ${stu.roll_id})`;
+                studentSelect.appendChild(opt);
+            });
+            studentSelect.disabled = false;
+            studentCount.textContent = `${data.students.length} student(s) found`;
+            studentCount.className = 'text-success';
+
+            // Populate subjects
+            if (data.subjects.length === 0) {
+                subjectFields.innerHTML = '<div class="alert alert-warning">No subjects assigned to this class</div>';
+                return;
+            }
+
+            subjectFields.innerHTML = '<h5 class="mt-4 mb-3">Subjects and Marks</h5>';
+
+            data.subjects.forEach(sub => {
+                const div = document.createElement('div');
+                div.className = 'mb-3';
+                div.innerHTML = `
+                    <label class="form-label">${sub.name}</label>
+                    <input type="number" class="form-control" name="marks_${sub.id}" 
+                           min="0" max="100" step="0.01" required 
+                           placeholder="Enter marks (0-100)">
+                `;
+                subjectFields.appendChild(div);
+            });
+        })
+        .catch(error => {
+            console.error('Error details:', error); // Debug log
+            studentSelect.innerHTML = '<option value="">Error loading data</option>';
+            studentSelect.disabled = true;
+            
+            errorMessage.textContent = `Failed to load data: ${error.message}. Please check: 1) Students are enrolled in this class, 2) Subjects are assigned to this class, 3) The URL '/get_students_subjects/' is correct`;
+            errorMessage.style.display = 'block';
+        });
+    });
+
+    // Enable submit button only when student is selected
+    studentSelect.addEventListener('change', function() {
+        submitBtn.disabled = !this.value || this.value === '';
+    });
+</script>
+
+{% endblock %}

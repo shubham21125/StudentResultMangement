@@ -1,0 +1,238 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance - Parent Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+        }
+        body {
+            background-color: #f8f9fa;
+        }
+        .sidebar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            margin: 5px 0;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .stat-card {
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        .attendance-present {
+            background: #d4edda;
+            color: #155724;
+        }
+        .attendance-absent {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .attendance-late {
+            background: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 sidebar p-0">
+                <div class="p-4">
+                    <h4 class="text-center mb-4">
+                        <i class="fas fa-graduation-cap me-2"></i>Parent Portal
+                    </h4>
+                    <div class="text-center mb-4">
+                        <div class="bg-white rounded-circle d-inline-block p-3 mb-2">
+                            <i class="fas fa-user fa-2x text-primary"></i>
+                        </div>
+                        <h6>{{ request.user.get_full_name }}</h6>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column px-3">
+                    <a class="nav-link" href="{% url 'parent_dashboard' %}">
+                        <i class="fas fa-home me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link active" href="{% url 'parent_attendance' %}">
+                        <i class="fas fa-calendar-check me-2"></i>Attendance
+                    </a>
+                    <a class="nav-link" href="{% url 'parent_results' %}">
+                        <i class="fas fa-chart-bar me-2"></i>Results
+                    </a>
+                    <a class="nav-link" href="{% url 'parent_progress' %}">
+                        <i class="fas fa-tasks me-2"></i>Progress Reports
+                    </a>
+                    <a class="nav-link" href="{% url 'parent_profile' %}">
+                        <i class="fas fa-user-circle me-2"></i>Profile
+                    </a>
+                    <hr class="bg-white">
+                    <a class="nav-link" href="{% url 'parent_logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-10 p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-calendar-check me-2"></i>Attendance Records</h2>
+                    <a href="{% url 'parent_dashboard' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                    </a>
+                </div>
+                
+                <!-- Student Info -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5>{{ student.name }} - {{ student.roll_id }}</h5>
+                        <p class="mb-0">{{ student.student_class.class_name }} - Section {{ student.student_class.section }}</p>
+                    </div>
+                </div>
+                
+                <!-- Attendance Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="stat-card bg-white">
+                            <h6 class="text-muted mb-2">Total Days</h6>
+                            <h3 class="mb-0">{{ total_records }}</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card attendance-present">
+                            <h6 class="mb-2">Present</h6>
+                            <h3 class="mb-0">{{ present_count }}</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card attendance-absent">
+                            <h6 class="mb-2">Absent</h6>
+                            <h3 class="mb-0">{{ absent_count }}</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card attendance-late">
+                            <h6 class="mb-2">Late</h6>
+                            <h3 class="mb-0">{{ late_count }}</h3>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Filter Form -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <form method="GET" class="row g-3">
+                            <div class="col-md-4">
+                                <label for="month" class="form-label">Month</label>
+                                <select name="month" id="month" class="form-select">
+                                    <option value="">All Months</option>
+                                    <option value="1" {% if selected_month == '1' %}selected{% endif %}>January</option>
+                                    <option value="2" {% if selected_month == '2' %}selected{% endif %}>February</option>
+                                    <option value="3" {% if selected_month == '3' %}selected{% endif %}>March</option>
+                                    <option value="4" {% if selected_month == '4' %}selected{% endif %}>April</option>
+                                    <option value="5" {% if selected_month == '5' %}selected{% endif %}>May</option>
+                                    <option value="6" {% if selected_month == '6' %}selected{% endif %}>June</option>
+                                    <option value="7" {% if selected_month == '7' %}selected{% endif %}>July</option>
+                                    <option value="8" {% if selected_month == '8' %}selected{% endif %}>August</option>
+                                    <option value="9" {% if selected_month == '9' %}selected{% endif %}>September</option>
+                                    <option value="10" {% if selected_month == '10' %}selected{% endif %}>October</option>
+                                    <option value="11" {% if selected_month == '11' %}selected{% endif %}>November</option>
+                                    <option value="12" {% if selected_month == '12' %}selected{% endif %}>December</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="year" class="form-label">Year</label>
+                                <select name="year" id="year" class="form-select">
+                                    <option value="2024" {% if selected_year == '2024' %}selected{% endif %}>2024</option>
+                                    <option value="2025" {% if selected_year == '2025' %}selected{% endif %}>2025</option>
+                                    <option value="2026" {% if selected_year == '2026' %}selected{% endif %}>2026</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary d-block w-100">
+                                    <i class="fas fa-filter me-1"></i>Filter
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Attendance Records Table -->
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Attendance History</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if attendance_records %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Day</th>
+                                            <th>Status</th>
+                                            <th>Remarks</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for record in attendance_records %}
+                                        <tr>
+                                            <td>{{ record.date|date:"d M Y" }}</td>
+                                            <td>{{ record.date|date:"l" }}</td>
+                                            <td>
+                                                {% if record.status == 'present' %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check-circle me-1"></i>Present
+                                                    </span>
+                                                {% elif record.status == 'absent' %}
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-times-circle me-1"></i>Absent
+                                                    </span>
+                                                {% elif record.status == 'late' %}
+                                                    <span class="badge bg-warning">
+                                                        <i class="fas fa-clock me-1"></i>Late
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ record.remarks|default:"—" }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+                                <h4 class="text-muted">No Attendance Records</h4>
+                                <p class="text-muted">No attendance records found for the selected period.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

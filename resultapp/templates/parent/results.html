@@ -1,0 +1,277 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results - Parent Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+        }
+        body {
+            background-color: #f8f9fa;
+        }
+        .sidebar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            margin: 5px 0;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+        .stat-card {
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        }
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 sidebar p-0">
+                <div class="p-4">
+                    <h4 class="text-center mb-4">
+                        <i class="fas fa-graduation-cap me-2"></i>Parent Portal
+                    </h4>
+                    <div class="text-center mb-4">
+                        <div class="bg-white rounded-circle d-inline-block p-3 mb-2">
+                            <i class="fas fa-user fa-2x text-primary"></i>
+                        </div>
+                        <h6>{{ request.user.get_full_name }}</h6>
+                    </div>
+                </div>
+                
+                <nav class="nav flex-column px-3">
+                    <a class="nav-link" href="{% url 'parent_dashboard' %}">
+                        <i class="fas fa-home me-2"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{% url 'parent_attendance' %}">
+                        <i class="fas fa-calendar-check me-2"></i>Attendance
+                    </a>
+                    <a class="nav-link active" href="{% url 'parent_results' %}">
+                        <i class="fas fa-chart-bar me-2"></i>Results
+                    </a>
+                    <a class="nav-link" href="{% url 'parent_progress' %}">
+                        <i class="fas fa-tasks me-2"></i>Progress Reports
+                    </a>
+                    <a class="nav-link" href="{% url 'parent_profile' %}">
+                        <i class="fas fa-user-circle me-2"></i>Profile
+                    </a>
+                    <hr class="bg-white">
+                    <a class="nav-link" href="{% url 'parent_logout' %}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-10 p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-chart-bar me-2"></i>Examination Results</h2>
+                    <a href="{% url 'parent_dashboard' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                    </a>
+                </div>
+                
+                <!-- Student Info -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5>{{ student.name }} - {{ student.roll_id }}</h5>
+                        <p class="mb-0">{{ student.student_class.class_name }} - Section {{ student.student_class.section }}</p>
+                    </div>
+                </div>
+                
+                <!-- Overall Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="stat-card bg-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-2">Total Marks</h6>
+                                    <h3 class="mb-0">{{ total_marks }}</h3>
+                                    <small class="text-muted">Out of {{ max_marks }}</small>
+                                </div>
+                                <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                                    <i class="fas fa-calculator"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="stat-card bg-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-2">Percentage</h6>
+                                    <h3 class="mb-0">{{ percentage }}%</h3>
+                                    <small class="text-muted">Overall</small>
+                                </div>
+                                <div class="stat-icon bg-success bg-opacity-10 text-success">
+                                    <i class="fas fa-percent"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="stat-card bg-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-2">Average Marks</h6>
+                                    <h3 class="mb-0">{{ avg_marks }}</h3>
+                                    <small class="text-muted">Per subject</small>
+                                </div>
+                                <div class="stat-icon bg-info bg-opacity-10 text-info">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <div class="stat-card bg-white">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-2">Grade</h6>
+                                    <h3 class="mb-0">
+                                        {% if percentage >= 90 %}A+
+                                        {% elif percentage >= 80 %}A
+                                        {% elif percentage >= 70 %}B+
+                                        {% elif percentage >= 60 %}B
+                                        {% elif percentage >= 50 %}C
+                                        {% elif percentage >= 40 %}D
+                                        {% else %}F
+                                        {% endif %}
+                                    </h3>
+                                    <small class="text-muted">Overall grade</small>
+                                </div>
+                                <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                                    <i class="fas fa-trophy"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Results Table -->
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-list-alt me-2"></i>Subject-wise Results</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if results %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Subject Name</th>
+                                            <th>Subject Code</th>
+                                            <th>Marks Obtained</th>
+                                            <th>Maximum Marks</th>
+                                            <th>Percentage</th>
+                                            <th>Grade</th>
+                                            <th>Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for result in results %}
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td><strong>{{ result.subject.subject_name }}</strong></td>
+                                            <td>{{ result.subject.subject_code }}</td>
+                                            <td>
+                                                <span class="badge {% if result.marks >= 75 %}bg-success{% elif result.marks >= 50 %}bg-warning text-dark{% else %}bg-danger{% endif %} fs-6">
+                                                    {{ result.marks }}
+                                                </span>
+                                            </td>
+                                            <td>100</td>
+                                            <td>{{ result.marks }}%</td>
+                                            <td>
+                                                <span class="badge bg-primary">
+                                                    {% if result.marks >= 90 %}A+
+                                                    {% elif result.marks >= 80 %}A
+                                                    {% elif result.marks >= 70 %}B+
+                                                    {% elif result.marks >= 60 %}B
+                                                    {% elif result.marks >= 50 %}C
+                                                    {% elif result.marks >= 40 %}D
+                                                    {% else %}F
+                                                    {% endif %}
+                                                </span>
+                                            </td>
+                                            <td>{{ result.posting_date|date:"d M Y" }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot class="table-light">
+                                        <tr>
+                                            <th colspan="3" class="text-end">Total:</th>
+                                            <th>{{ total_marks }}</th>
+                                            <th>{{ max_marks }}</th>
+                                            <th>{{ percentage }}%</th>
+                                            <th colspan="2"></th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                            
+                            <!-- Performance Chart -->
+                            <div class="mt-4">
+                                <h5><i class="fas fa-chart-bar me-2"></i>Performance Overview</h5>
+                                <div class="progress" style="height: 30px;">
+                                    {% if percentage >= 75 %}
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100">
+                                            {{ percentage }}% - Excellent
+                                        </div>
+                                    {% elif percentage >= 50 %}
+                                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100">
+                                            {{ percentage }}% - Good
+                                        </div>
+                                    {% else %}
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100">
+                                            {{ percentage }}% - Needs Improvement
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
+                                <h4 class="text-muted">No Results Available</h4>
+                                <p class="text-muted">Results will appear here once they are published by the school.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
