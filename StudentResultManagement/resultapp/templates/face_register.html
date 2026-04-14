@@ -1,0 +1,155 @@
+{% extends 'admin_base.html' %}
+{% load static %}
+
+{% block title %}Register Face - Student Result Management{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h3 class="mb-0">
+                        <i class="fas fa-camera"></i> Register Student Face
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post" enctype="multipart/form-data" id="faceRegisterForm">
+                        {% csrf_token %}
+
+                        <!-- Student Selection -->
+                        <div class="mb-4">
+                            <label for="studentSelect" class="form-label fw-bold">
+                                <i class="fas fa-user"></i> Select Student
+                            </label>
+                            <select id="studentSelect" name="student" class="form-select form-select-lg" required>
+                                <option value="">-- Choose a Student --</option>
+                                {% for student in students %}
+                                    <option value="{{ student.id }}">{{ student.name }} ({{ student.roll_id }})</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted d-block mt-2">Only active students are shown.</small>
+                        </div>
+
+                        <!-- Photo Upload -->
+                        <div class="mb-4">
+                            <label for="photoInput" class="form-label fw-bold">
+                                <i class="fas fa-image"></i> Upload Photo
+                            </label>
+                            <div class="input-group">
+                                <input type="file" id="photoInput" name="photo" class="form-control form-control-lg" accept="image/*" required>
+                                <span class="input-group-text">
+                                    <i class="fas fa-upload"></i>
+                                </span>
+                            </div>
+                            <small class="text-muted d-block mt-2">Supported formats: JPG, PNG, GIF. Max size: 5MB.</small>
+                        </div>
+
+                        <!-- Image Preview -->
+                        <div class="mb-4">
+                            <div id="previewContainer" style="display: none;">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-eye"></i> Photo Preview
+                                </label>
+                                <div class="text-center">
+                                    <img id="previewImage" src="" alt="Preview" class="img-thumbnail" style="max-width: 300px; max-height: 300px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-lg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;">
+                                <i class="fas fa-check-circle"></i> Register Face
+                            </button>
+                            <a href="{% url 'admin:index' %}" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('photoInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                document.getElementById('previewImage').src = event.target.result;
+                document.getElementById('previewContainer').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    document.getElementById('faceRegisterForm').addEventListener('submit', function(e) {
+        const student = document.getElementById('studentSelect').value;
+        const photo = document.getElementById('photoInput').value;
+        if (!student || !photo) {
+            e.preventDefault();
+            alert('Please select a student and upload a photo.');
+        }
+    });
+</script>
+
+<style>
+    .card {
+        border: none;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .card-header {
+        border-bottom: none;
+        padding: 1.5rem;
+    }
+
+    .form-label {
+        color: #333;
+        font-size: 1.05rem;
+    }
+
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 2px solid #e0e0e0;
+        padding: 0.75rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+
+    .btn {
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .img-thumbnail {
+        border-radius: 8px;
+        border: 2px solid #667eea;
+        padding: 0.5rem;
+    }
+</style>
+{% endblock %}

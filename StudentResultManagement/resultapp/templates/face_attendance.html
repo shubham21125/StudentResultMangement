@@ -1,0 +1,279 @@
+{% extends 'admin_base.html' %}
+{% load static %}
+
+{% block title %}Face Recognition Attendance - Student Result Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-5">
+    <div class="row">
+        <!-- Control Panel -->
+        <div class="col-md-4">
+            <div class="card shadow-lg" style="border-radius: 12px; border: none;">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px 12px 0 0;">
+                    <h4 class="mb-0">
+                        <i class="fas fa-cogs"></i> Attendance Settings
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form id="attendanceForm" method="post">
+                        {% csrf_token %}
+
+                        <!-- Date Picker -->
+                        <div class="mb-4">
+                            <label for="attendanceDate" class="form-label fw-bold">
+                                <i class="fas fa-calendar-alt"></i> Attendance Date
+                            </label>
+                            <input type="date" id="attendanceDate" name="attendance_date" class="form-control form-control-lg" value="{{ today }}" required>
+                        </div>
+
+                        <!-- Class Selector -->
+                        <div class="mb-4">
+                            <label for="classSelect" class="form-label fw-bold">
+                                <i class="fas fa-chalkboard"></i> Select Class
+                            </label>
+                            <select id="classSelect" name="class_id" class="form-select form-select-lg" required>
+                                <option value="">-- Choose a Class --</option>
+                                {% for class in classes %}
+                                    <option value="{{ class.id }}">{{ class.class_name }} - {{ class.section }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Control Buttons -->
+                        <div class="d-grid gap-2">
+                            <button type="button" id="startDetectionBtn" class="btn btn-lg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; font-weight: 600;">
+                                <i class="fas fa-play-circle"></i> Start Detection
+                            </button>
+                            <button type="button" id="stopDetectionBtn" class="btn btn-warning btn-lg" style="display: none; font-weight: 600;">
+                                <i class="fas fa-stop-circle"></i> Stop Detection
+                            </button>
+                            <button type="submit" id="submitBtn" class="btn btn-success btn-lg" style="font-weight: 600;">
+                                <i class="fas fa-save"></i> Save Attendance
+                            </button>
+                            <a href="{% url 'admin:index' %}" class="btn btn-secondary btn-lg" style="font-weight: 600;">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </a>
+                        </div>
+                    </form>
+
+                    <!-- Detected Students List -->
+                    <div class="mt-4">
+                        <h5 class="fw-bold">
+                            <i class="fas fa-list"></i> Detected Students
+                        </h5>
+                        <div id="detectedStudentsList" class="list-group mt-3">
+                            <p class="text-muted text-center">No students detected yet.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Webcam Feed -->
+        <div class="col-md-8">
+            <div class="card shadow-lg" style="border-radius: 12px; border: none;">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px 12px 0 0;">
+                    <h4 class="mb-0">
+                        <i class="fas fa-video"></i> Live Webcam Feed
+                    </h4>
+                </div>
+                <div class="card-body p-0" style="border-radius: 0 0 12px 12px;">
+                    <div id="webcamContainer" style="position: relative; width: 100%; background-color: #000; border-radius: 0 0 12px 12px; overflow: hidden;">
+                        <img id="webcamFeed" src="" alt="Webcam Feed" style="width: 100%; height: auto; display: none;">
+                        <div id="loadingMessage" class="text-center p-5" style="color: white;">
+                            <p>Click "Start Detection" to begin face recognition...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let detectedStudents = new Set();
+    let detectionActive = false;
+
+    document.getElementById('startDetectionBtn').addEventListener('click', function() {
+        const classId = document.getElementById('classSelect').value;
+        if (!classId) {
+            alert('Please select a class first.');
+            return;
+        }
+
+        detectionActive = true;
+        detectedStudents.clear();
+        document.getElementById('startDetectionBtn').style.display = 'none';
+        document.getElementById('stopDetectionBtn').style.display = 'block';
+        document.getElementById('webcamFeed').style.display = 'block';
+        document.getElementById('loadingMessage').style.display = 'none';
+
+        // Start the webcam feed
+        const feedUrl = "{% url 'live_feed' %}";
+        document.getElementById('webcamFeed').src = feedUrl;
+
+        // Simulate detection (in real implementation, this would be handled by the server)
+        simulateDetection();
+    });
+
+    document.getElementById('stopDetectionBtn').addEventListener('click', function() {
+        detectionActive = false;
+        document.getElementById('startDetectionBtn').style.display = 'block';
+        document.getElementById('stopDetectionBtn').style.display = 'none';
+        document.getElementById('webcamFeed').src = '';
+        document.getElementById('webcamFeed').style.display = 'none';
+        document.getElementById('loadingMessage').style.display = 'block';
+    });
+
+    document.getElementById('attendanceForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const date = document.getElementById('attendanceDate').value;
+        const classId = document.getElementById('classSelect').value;
+        const detectedStudentIds = Array.from(detectedStudents).join(',');
+
+        if (!date || !classId) {
+            alert('Please select a date and class.');
+            return;
+        }
+
+        if (detectedStudents.size === 0) {
+            alert('No students detected. Please run detection first.');
+            return;
+        }
+
+        // Submit the form via AJAX
+        fetch("{% url 'face_detect_attendance' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+            body: `attendance_date=${date}&class_id=${classId}&detected_students=${detectedStudentIds}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Attendance saved successfully!');
+                detectedStudents.clear();
+                updateDetectedStudentsList();
+                document.getElementById('attendanceForm').reset();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while saving attendance.');
+        });
+    });
+
+    function simulateDetection() {
+        // This is a placeholder for real detection logic
+        // In a real implementation, the server would send detected student IDs
+        // For now, we'll simulate adding some students
+        if (detectionActive) {
+            // Simulate random detection
+            const randomStudentId = Math.floor(Math.random() * 100) + 1;
+            if (Math.random() > 0.7) {
+                detectedStudents.add(randomStudentId);
+                updateDetectedStudentsList();
+            }
+            setTimeout(simulateDetection, 2000);
+        }
+    }
+
+    function updateDetectedStudentsList() {
+        const listContainer = document.getElementById('detectedStudentsList');
+        if (detectedStudents.size === 0) {
+            listContainer.innerHTML = '<p class="text-muted text-center">No students detected yet.</p>';
+            return;
+        }
+
+        let html = '';
+        detectedStudents.forEach(studentId => {
+            html += `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="fas fa-user-check" style="color: #667eea;"></i> Student ID: ${studentId}
+                    </span>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="removeDetectedStudent(${studentId})">
+                        <i class="fas fa-trash"></i> Remove
+                    </button>
+                </div>
+            `;
+        });
+        listContainer.innerHTML = html;
+    }
+
+    function removeDetectedStudent(studentId) {
+        detectedStudents.delete(studentId);
+        updateDetectedStudentsList();
+    }
+</script>
+
+<style>
+    .card {
+        border: none;
+        overflow: hidden;
+    }
+
+    .card-header {
+        border-bottom: none;
+        padding: 1.5rem;
+    }
+
+    .form-label {
+        color: #333;
+        font-size: 1.05rem;
+    }
+
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 2px solid #e0e0e0;
+        padding: 0.75rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+
+    .btn {
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .list-group-item {
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        border: 1px solid #e0e0e0;
+    }
+
+    #webcamContainer {
+        min-height: 400px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #loadingMessage {
+        font-size: 1.1rem;
+    }
+</style>
+{% endblock %}

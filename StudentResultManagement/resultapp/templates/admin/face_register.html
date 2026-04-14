@@ -1,0 +1,275 @@
+{% extends 'admin_base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+  .face-card {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(102,126,234,.15);
+  }
+  .face-card .card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px 16px 0 0;
+    padding: 1.2rem 1.5rem;
+  }
+  .preview-box {
+    width: 100%;
+    max-width: 320px;
+    height: 260px;
+    border: 2px dashed #667eea;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f7ff;
+    overflow: hidden;
+    margin: 0 auto;
+    transition: border-color .3s;
+  }
+  .preview-box img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 10px;
+  }
+  .preview-box .placeholder-text {
+    color: #aaa;
+    font-size: .9rem;
+    text-align: center;
+    padding: 1rem;
+  }
+  .upload-label {
+    cursor: pointer;
+    display: block;
+    border: 2px solid #667eea;
+    border-radius: 8px;
+    padding: .55rem 1rem;
+    text-align: center;
+    color: #667eea;
+    font-weight: 500;
+    transition: all .25s;
+  }
+  .upload-label:hover {
+    background: #667eea;
+    color: #fff;
+  }
+  .btn-primary-grad {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 600;
+    padding: .6rem 1.8rem;
+    transition: opacity .25s;
+  }
+  .btn-primary-grad:hover { opacity: .88; color: #fff; }
+  .student-select {
+    border: 1.5px solid #c4baf5;
+    border-radius: 8px;
+    padding: .55rem .9rem;
+    font-size: .95rem;
+    width: 100%;
+  }
+  .student-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,.2);
+  }
+  .table-registered th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
+</style>
+
+<div class="row g-4">
+  <!-- Registration Form -->
+  <div class="col-lg-5">
+    <div class="card face-card h-100">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="fas fa-camera text-white fa-lg"></i>
+        <span class="text-white fw-semibold fs-5">Register Student Face</span>
+      </div>
+      <div class="card-body p-4">
+
+        <!-- Messages -->
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+
+        <form method="POST" enctype="multipart/form-data" id="registerForm">
+          {% csrf_token %}
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold text-secondary">Select Student</label>
+            <select name="student_id" id="studentSelect" class="student-select" required>
+              <option value="">-- Choose a Student --</option>
+              {% for student in students %}
+                <option value="{{ student.id }}">
+                  {{ student.name }} &nbsp;|&nbsp; Roll: {{ student.roll_id }} &nbsp;|&nbsp; {{ student.student_class }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold text-secondary">Upload Face Photo</label>
+            <label for="photoInput" class="upload-label">
+              <i class="fas fa-cloud-upload-alt me-2"></i>Choose Photo
+            </label>
+            <input type="file" name="photo" id="photoInput" accept="image/*" class="d-none" required>
+            <small class="text-muted d-block mt-1">Accepted: JPG, PNG, WEBP — Front-facing preferred</small>
+          </div>
+
+          <!-- Preview -->
+          <div class="preview-box mb-4" id="previewBox">
+            <div class="placeholder-text" id="previewPlaceholder">
+              <i class="fas fa-portrait fa-2x mb-2 d-block" style="color:#c4baf5;"></i>
+              Image preview will appear here
+            </div>
+            <img id="previewImg" src="" alt="Preview" class="d-none">
+          </div>
+
+          <button type="submit" class="btn btn-primary-grad w-100" id="submitBtn">
+            <i class="fas fa-save me-2"></i>Register Face
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Registered Students -->
+  <div class="col-lg-7">
+    <div class="card face-card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fas fa-users text-white fa-lg"></i>
+          <span class="text-white fw-semibold fs-5">Registered Students</span>
+        </div>
+        <!-- Train All button -->
+        <button class="btn btn-light btn-sm fw-semibold" id="trainBtn" onclick="trainAllFaces()">
+          <i class="fas fa-brain me-1"></i> Train All Faces
+        </button>
+      </div>
+      <div class="card-body p-3">
+        <div id="trainMsg" class="mb-2"></div>
+        {% if students %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle table-registered">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Student</th>
+                  <th>Roll ID</th>
+                  <th>Class</th>
+                  <th>Face Photo</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for student in students %}
+                <tr>
+                  <td>{{ forloop.counter }}</td>
+                  <td class="fw-semibold">{{ student.name }}</td>
+                  <td><span class="badge bg-secondary">{{ student.roll_id }}</span></td>
+                  <td>{{ student.student_class }}</td>
+                  <td>
+                    {% if student.photo %}
+                      <img src="{{ student.photo.url }}" alt="{{ student.name }}"
+                           width="48" height="48" class="rounded-circle object-fit-cover border border-2"
+                           style="border-color:#667eea !important; cursor:pointer;"
+                           onclick="showFullPhoto('{{ student.photo.url }}', '{{ student.name }}')">
+                    {% else %}
+                      <span class="text-muted"><i class="fas fa-user-circle fa-2x"></i></span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if student.photo %}
+                      <span class="badge" style="background:#28a745;">
+                        <i class="fas fa-check-circle me-1"></i>Registered
+                      </span>
+                    {% else %}
+                      <span class="badge bg-warning text-dark">
+                        <i class="fas fa-clock me-1"></i>Pending
+                      </span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-muted text-center mt-4">No active students found.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Photo Modal -->
+<div class="modal fade" id="photoModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 rounded-4">
+      <div class="modal-header" style="background:linear-gradient(135deg,#667eea,#764ba2);">
+        <h5 class="modal-title text-white" id="photoModalLabel">Student Photo</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center p-3">
+        <img id="modalPhotoImg" src="" alt="" class="img-fluid rounded-3" style="max-height:350px;">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Live image preview
+  document.getElementById('photoInput').addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('previewPlaceholder').classList.add('d-none');
+      const img = document.getElementById('previewImg');
+      img.src = e.target.result;
+      img.classList.remove('d-none');
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Show full photo in modal
+  function showFullPhoto(url, name) {
+    document.getElementById('modalPhotoImg').src = url;
+    document.getElementById('photoModalLabel').textContent = name;
+    new bootstrap.Modal(document.getElementById('photoModal')).show();
+  }
+
+  // Train all faces via AJAX
+  function trainAllFaces() {
+    const btn = document.getElementById('trainBtn');
+    const msg = document.getElementById('trainMsg');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Training…';
+
+    fetch("{% url 'face_train' %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'success') {
+        msg.innerHTML = `<div class="alert alert-success py-2"><i class="fas fa-check-circle me-1"></i>${data.message}</div>`;
+      } else {
+        msg.innerHTML = `<div class="alert alert-danger py-2"><i class="fas fa-exclamation-circle me-1"></i>${data.message}</div>`;
+      }
+    })
+    .catch(() => {
+      msg.innerHTML = '<div class="alert alert-danger py-2">Network error. Please try again.</div>';
+    })
+    .finally(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-brain me-1"></i> Train All Faces';
+    });
+  }
+</script>
+{% endblock %}

@@ -1,6 +1,10 @@
+# StudentResultManagement/urls.py (Main project URLs)
+
 from django.contrib import admin
 from django.urls import path
 from resultapp.views import *
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -40,10 +44,18 @@ urlpatterns = [
     path('parent/progress/', parent_view_progress, name='parent_progress'),
     path('parent/profile/', parent_profile, name='parent_profile'),
 
-    # Admin Parent Management URLs (using manage/ to avoid conflict with Django admin/)
+    # Admin Parent Management URLs
     path('manage/create-parent/', create_parent_account, name='create_parent_account'),
     path('manage/manage-parents/', manage_parents, name='manage_parents'),
     path('manage/add-attendance/', add_attendance, name='add_attendance'),
     path('manage/add-progress-report/', add_progress_report, name='add_progress_report'),
-    
+
+    # Face Recognition Attendance URLs
+    path('face/register/', face_register, name='face_register'),
+    path('face/train/', face_train, name='face_train'),
+    path('face/detect/', face_detect_attendance, name='face_detect_attendance'),
+    path('face/live-feed/', live_feed, name='live_feed'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

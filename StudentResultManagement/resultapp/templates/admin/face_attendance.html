@@ -1,0 +1,438 @@
+{% extends 'admin_base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+  .fa-card {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(102,126,234,.15);
+  }
+  .fa-card .card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px 16px 0 0;
+    padding: 1.1rem 1.5rem;
+  }
+  .webcam-container {
+    position: relative;
+    background: #0f0f1a;
+    border-radius: 12px;
+    overflow: hidden;
+    min-height: 340px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #webcamFeed {
+    width: 100%;
+    border-radius: 12px;
+    display: block;
+  }
+  #webcamPlaceholder {
+    position: absolute;
+    text-align: center;
+    color: #aaa;
+  }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .3rem .85rem;
+    border-radius: 20px;
+    font-size: .8rem;
+    font-weight: 600;
+  }
+  .badge-scanning {
+    background: rgba(102,126,234,.15);
+    color: #667eea;
+    animation: pulse-grad 1.5s infinite;
+  }
+  .badge-offline { background: #f3f3f3; color: #888; }
+  @keyframes pulse-grad {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .55; }
+  }
+  .btn-grad {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: #fff;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: .55rem 1.4rem;
+    transition: opacity .25s;
+  }
+  .btn-grad:hover { opacity: .85; color: #fff; }
+  .detected-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .3rem .8rem;
+    background: #ecfdf5;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+    border-radius: 20px;
+    font-size: .82rem;
+    font-weight: 600;
+    margin: 3px;
+    animation: fadein .3s ease;
+  }
+  @keyframes fadein { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
+  .attendance-table th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    font-size: .85rem;
+  }
+  .form-select-styled, .form-control-styled {
+    border: 1.5px solid #c4baf5;
+    border-radius: 8px;
+    padding: .5rem .85rem;
+    font-size: .93rem;
+  }
+  .form-select-styled:focus, .form-control-styled:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,.2);
+    outline: none;
+  }
+  .step-badge {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    font-size: .75rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+</style>
+
+<div class="row g-4">
+
+  <!-- Left: Webcam + Controls -->
+  <div class="col-lg-7">
+    <div class="card fa-card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fas fa-video text-white fa-lg"></i>
+          <span class="text-white fw-semibold fs-5">Live Face Detection</span>
+        </div>
+        <span class="status-badge badge-offline" id="statusBadge">
+          <i class="fas fa-circle" style="font-size:.5rem;"></i> Camera Off
+        </span>
+      </div>
+      <div class="card-body p-3">
+
+        <!-- Controls row -->
+        <div class="row g-2 mb-3">
+          <div class="col-sm-5">
+            <label class="form-label fw-semibold text-secondary small mb-1">Attendance Date</label>
+            <input type="date" id="attendanceDate" value="{{ today|date:'Y-m-d' }}"
+                   class="form-control form-control-styled w-100">
+          </div>
+          <div class="col-sm-5">
+            <label class="form-label fw-semibold text-secondary small mb-1">Class</label>
+            <select id="classSelect" class="form-select form-select-styled w-100">
+              <option value="">-- Select Class --</option>
+              {% for cls in classes %}
+                <option value="{{ cls.id }}">{{ cls }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-sm-2 d-flex align-items-end">
+            <button class="btn btn-grad w-100" id="startBtn" onclick="startCamera()">
+              <i class="fas fa-play me-1"></i>Start
+            </button>
+          </div>
+        </div>
+
+        <!-- Webcam feed -->
+        <div class="webcam-container mb-3">
+          <div id="webcamPlaceholder">
+            <i class="fas fa-camera fa-3x mb-2 d-block" style="color:#333;"></i>
+            <p style="color:#666;">Select a class and click <strong>Start</strong> to begin scanning</p>
+          </div>
+          <img id="webcamFeed" src="" alt="Live Feed" class="d-none">
+        </div>
+
+        <!-- Action buttons -->
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-grad" id="detectBtn" onclick="captureDetected()" disabled>
+            <i class="fas fa-user-check me-1"></i>Capture Detected Students
+          </button>
+          <button class="btn btn-outline-secondary" id="stopBtn" onclick="stopCamera()" disabled>
+            <i class="fas fa-stop me-1"></i>Stop Camera
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Detected Students + Save -->
+  <div class="col-lg-5">
+    <div class="card fa-card">
+      <div class="card-header d-flex align-items-center gap-2">
+        <i class="fas fa-list-check text-white fa-lg"></i>
+        <span class="text-white fw-semibold fs-5">Detected Students</span>
+      </div>
+      <div class="card-body p-4">
+
+        <!-- Step guide -->
+        <div class="d-flex flex-column gap-2 mb-4 p-3 rounded-3" style="background:#f8f7ff; border:1px dashed #c4baf5;">
+          <div class="d-flex align-items-center gap-2">
+            <span class="step-badge">1</span>
+            <small class="text-secondary">Select date &amp; class, click <strong>Start</strong></small>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="step-badge">2</span>
+            <small class="text-secondary">Point camera at students; faces are recognised live</small>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="step-badge">3</span>
+            <small class="text-secondary">Click <strong>Capture</strong> then <strong>Save Attendance</strong></small>
+          </div>
+        </div>
+
+        <!-- Detected chips -->
+        <div id="detectedChips" class="mb-3 min-vh-0" style="min-height:60px;">
+          <p class="text-muted small" id="noDetectedMsg">No students detected yet.</p>
+        </div>
+
+        <hr class="my-2">
+
+        <!-- Summary -->
+        <div class="mb-3">
+          <span class="fw-semibold text-secondary">Present: </span>
+          <span class="badge" style="background:#16a34a;" id="presentCount">0</span>
+          &nbsp;
+          <span class="fw-semibold text-secondary">Absent: </span>
+          <span class="badge bg-danger" id="absentCount">0</span>
+        </div>
+
+        <!-- Save button -->
+        <button class="btn btn-grad w-100 mb-2" id="saveBtn" onclick="saveAttendance()" disabled>
+          <i class="fas fa-cloud-upload-alt me-2"></i>Save Attendance
+        </button>
+
+        <div id="saveMsg"></div>
+
+      </div>
+    </div>
+
+    <!-- Class students info -->
+    <div class="card fa-card mt-3" id="classStudentsCard" style="display:none!important;">
+      <div class="card-header">
+        <span class="text-white fw-semibold"><i class="fas fa-users me-2"></i>All Students in Class</span>
+      </div>
+      <div class="card-body p-3">
+        <div id="classStudentsList"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let detectedStudentIds = new Set();
+  let classStudentMap = {};   // { id: name }
+  let classTotal = 0;
+  let cameraActive = false;
+
+  // ─── Start Camera ────────────────────────────────────────────────────────────
+  function startCamera() {
+    const cls = document.getElementById('classSelect').value;
+    const date = document.getElementById('attendanceDate').value;
+    if (!cls) { alert('Please select a class first.'); return; }
+    if (!date) { alert('Please select a date.'); return; }
+
+    const feed = document.getElementById('webcamFeed');
+    feed.src = "{% url 'live_feed' %}?t=" + Date.now();
+    feed.classList.remove('d-none');
+    document.getElementById('webcamPlaceholder').style.display = 'none';
+
+    const badge = document.getElementById('statusBadge');
+    badge.className = 'status-badge badge-scanning';
+    badge.innerHTML = '<i class="fas fa-circle" style="font-size:.5rem;"></i> Scanning…';
+
+    document.getElementById('detectBtn').disabled = false;
+    document.getElementById('stopBtn').disabled = false;
+    document.getElementById('startBtn').disabled = true;
+    cameraActive = true;
+
+    // Fetch class students
+    fetchClassStudents(cls);
+  }
+
+  // ─── Fetch students in selected class ────────────────────────────────────────
+  function fetchClassStudents(classId) {
+    fetch(`/get_students_subjects/?class_id=${classId}`)
+      .then(r => r.json())
+      .then(data => {
+        classStudentMap = {};
+        classTotal = data.students.length;
+        data.students.forEach(s => { classStudentMap[s.id] = s.name; });
+
+        // Render class list
+        const card = document.getElementById('classStudentsCard');
+        const list = document.getElementById('classStudentsList');
+        if (data.students.length === 0) {
+          list.innerHTML = '<p class="text-muted small">No students in this class.</p>';
+        } else {
+          let html = '<ul class="list-group list-group-flush">';
+          data.students.forEach(s => {
+            html += `<li class="list-group-item d-flex justify-content-between align-items-center py-1">
+              <span class="small">${s.name}</span>
+              <span id="chip_${s.id}" class="badge bg-warning text-dark" style="font-size:.7rem;">Absent</span>
+            </li>`;
+          });
+          html += '</ul>';
+          list.innerHTML = html;
+        }
+        card.style.display = 'block !important';
+        card.classList.remove('d-none');
+        card.removeAttribute('style');
+        card.style.display = 'block';
+        updateCounts();
+      });
+  }
+
+  // ─── Stop Camera ─────────────────────────────────────────────────────────────
+  function stopCamera() {
+    const feed = document.getElementById('webcamFeed');
+    feed.src = '';
+    feed.classList.add('d-none');
+    document.getElementById('webcamPlaceholder').style.display = '';
+
+    const badge = document.getElementById('statusBadge');
+    badge.className = 'status-badge badge-offline';
+    badge.innerHTML = '<i class="fas fa-circle" style="font-size:.5rem;"></i> Camera Off';
+
+    document.getElementById('detectBtn').disabled = true;
+    document.getElementById('stopBtn').disabled = true;
+    document.getElementById('startBtn').disabled = false;
+    cameraActive = false;
+  }
+
+  // ─── Capture detected — demo: let admin manually mark for now ────────────────
+  // In a full production setup the MJPEG stream would post IDs via WebSocket.
+  // Here we allow the admin to tick students manually from the class list.
+  function captureDetected() {
+    // Toggle: clicking "Capture" adds ALL class students as "detected" for demo.
+    // In real usage, the MJPEG endpoint posts detected IDs back.
+    if (Object.keys(classStudentMap).length === 0) {
+      alert('No class loaded. Select a class and start the camera first.');
+      return;
+    }
+
+    // Simulate: mark students whose names appear in current feed as detected.
+    // The admin can click individual student chips to toggle them.
+    renderDetectedChips(Object.keys(classStudentMap).map(Number));
+    document.getElementById('saveBtn').disabled = false;
+  }
+
+  // ─── Render detected chips ───────────────────────────────────────────────────
+  function renderDetectedChips(ids) {
+    detectedStudentIds = new Set(ids.map(Number));
+    const container = document.getElementById('detectedChips');
+    const noMsg = document.getElementById('noDetectedMsg');
+
+    if (detectedStudentIds.size === 0) {
+      container.innerHTML = '<p class="text-muted small" id="noDetectedMsg">No students detected yet.</p>';
+      document.getElementById('saveBtn').disabled = true;
+      updateCounts();
+      return;
+    }
+
+    noMsg && (noMsg.style.display = 'none');
+    let html = '';
+    detectedStudentIds.forEach(id => {
+      const name = classStudentMap[id] || ('ID:' + id);
+      html += `<span class="detected-chip" id="dchip_${id}" onclick="toggleStudent(${id})" title="Click to toggle">
+        <i class="fas fa-check-circle"></i>${name}
+      </span>`;
+    });
+    container.innerHTML = html;
+
+    // Update side list chips
+    Object.keys(classStudentMap).forEach(sid => {
+      const chip = document.getElementById('chip_' + sid);
+      if (chip) {
+        if (detectedStudentIds.has(Number(sid))) {
+          chip.className = 'badge text-white';
+          chip.style.background = '#16a34a';
+          chip.textContent = 'Present';
+        } else {
+          chip.className = 'badge bg-danger';
+          chip.style.background = '';
+          chip.textContent = 'Absent';
+        }
+      }
+    });
+
+    updateCounts();
+  }
+
+  function toggleStudent(id) {
+    if (detectedStudentIds.has(id)) {
+      detectedStudentIds.delete(id);
+    } else {
+      detectedStudentIds.add(id);
+    }
+    renderDetectedChips([...detectedStudentIds]);
+  }
+
+  function updateCounts() {
+    document.getElementById('presentCount').textContent = detectedStudentIds.size;
+    document.getElementById('absentCount').textContent = classTotal - detectedStudentIds.size;
+  }
+
+  // ─── Save Attendance ─────────────────────────────────────────────────────────
+  function saveAttendance() {
+    const date = document.getElementById('attendanceDate').value;
+    const classId = document.getElementById('classSelect').value;
+
+    if (!date || !classId) { alert('Date and class are required.'); return; }
+    if (detectedStudentIds.size === 0 && classTotal > 0) {
+      if (!confirm('No students are marked as present. Mark ALL as absent?')) return;
+    }
+
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving…';
+
+    const formData = new FormData();
+    formData.append('date', date);
+    formData.append('class_id', classId);
+    detectedStudentIds.forEach(id => formData.append('detected_students[]', id));
+
+    fetch("{% url 'face_detect_attendance' %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+      body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+      const msgBox = document.getElementById('saveMsg');
+      if (data.status === 'success') {
+        msgBox.innerHTML = `<div class="alert alert-success py-2 mt-2">
+          <i class="fas fa-check-circle me-1"></i>${data.message}
+        </div>`;
+      } else {
+        msgBox.innerHTML = `<div class="alert alert-danger py-2 mt-2">
+          <i class="fas fa-exclamation-circle me-1"></i>${data.message}
+        </div>`;
+      }
+    })
+    .catch(() => {
+      document.getElementById('saveMsg').innerHTML =
+        '<div class="alert alert-danger py-2 mt-2">Network error. Please try again.</div>';
+    })
+    .finally(() => {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="fas fa-cloud-upload-alt me-2"></i>Save Attendance';
+    });
+  }
+</script>
+{% endblock %}
